@@ -1,5 +1,5 @@
 import { User } from "../Models/User.js";
-import { Student } from "../models/Students.js";
+import { Student } from "../Models/Students.js";
 import bcrypt from "bcryptjs";
 import validator from "validator";
 
