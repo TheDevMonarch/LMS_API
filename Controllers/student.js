@@ -1,4 +1,4 @@
-import { Student } from "../Models/Students.js";
+import { Student } from "../models/Students.js"
 
 export const addStudent = async(req, res)=>{
 
@@ -8,13 +8,13 @@ export const addStudent = async(req, res)=>{
 
   if(student){
    
-    return res.json({message:"Student detail already exist", success:false})
+    return res.status(409).json({message:"Student detail already exist", success:false})
 
   }
 
   await Student.create({name, URN})
 
-   return res.json({message:"Student detail added successfully", success:true})
+   return res.status(201).json({message:"Student detail added successfully", success:true})
 
 
 

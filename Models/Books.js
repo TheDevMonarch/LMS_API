@@ -8,7 +8,8 @@ const BooksSchema = new mongoose.Schema({
   category:{type:String, required:true},
   location:{type:String, required:true},
   totalCopies:{type:Number, required:true},
-  availableCopies:{type:Number, required:true}
+  availableCopies:{type:Number, required:true},
+  coverImage: {type:String, required:true}
 })
 
 export const Books = mongoose.model("books", BooksSchema)

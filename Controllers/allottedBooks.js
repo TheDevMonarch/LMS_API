@@ -6,21 +6,19 @@ export const allotBooks = async (req, res) => {
   const { URN, bookId } = req.body;
 
   try {
-    let user = await User.findOne({ URN });
+
+    let [user, student, book] = await Promise.all([User.findOne({ URN }), AllottedBooks.findOne({ URN }), Books.findById(bookId)]);
+
 
     //checking if user exist or not
     if (!user) {
-      return res.json({ message: "User not found, register first!!" });
+      return res.status(404).json({ message: "User not found, register first!!" });
     }
 
-    // students borrowed book
-    let student = await AllottedBooks.findOne({ URN });
-
-    let book = await Books.findById(bookId);
 
     //check if book is available or not
     if (book.availableCopies === 0) {
-      return res.json({
+      return res.status(404).json({
         message: "Book is not available right now",
         success: false,
       });
@@ -36,7 +34,7 @@ export const allotBooks = async (req, res) => {
       book.availableCopies -= 1;
       await book.save();
 
-      return res.json({
+      return res.status(201).json({
         message: "First book allotted successfully",
         student,
         success: true,
@@ -49,24 +47,22 @@ export const allotBooks = async (req, res) => {
     });
 
     if (isBookAllotted) {
-      return res.json({ message: "This book already allotted to this user" });
+      return res.status(409).json({ message: "Selected book already allotted to this user" });
     }
 
     student.books.push({ bookId: bookId });
-
-    await student.save();
-
     book.availableCopies -= 1;
-    await book.save();
 
-    return res.json({
+    await Promise.all([student.save(), book.save()])
+
+    return res.status(201).json({
       message: "Book Allotted Successfully",
       student,
       success: true,
     });
   } catch (error) {
     console.log(error);
-    res.json({ message: "Something went wrong!!", success: false });
+    res.status(500).json({ message: "Something went wrong!!", success: false });
   }
 };
 
@@ -74,11 +70,9 @@ export const returnBook = async (req, res) => {
   const { URN, bookId } = req.body;
 
   try {
-    let user = await User.findOne({ URN });
 
-    let book = await Books.findById(bookId);
+    let [user, book, student] = await Promise.all([User.findOne({ URN }), Books.findById(bookId), AllottedBooks.findOne({ URN })]);
 
-    let student = await AllottedBooks.findOne({ URN });
 
     if (!student) {
       return res.json({ message: "Student record not found", success: false });
@@ -104,35 +98,31 @@ function isWithinValidWindow(borrowedStr, dueStr) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Add 2 days to borrowed date
-  const minValidDate = new Date(borrowedDate);
-  minValidDate.setDate(minValidDate.getDate() + 2);
-
-  // Check: today >= borrowedDate + 2  AND today < dueDate
-  return today >= minValidDate && today < dueDate;
+  // Check:  today <= dueDate
+  return today <= dueDate;
 }
   
 
-    if (bookIndex > -1) {
+    if (bookIndex < 0 ) {
+  
+      return res.status(404).json({ message: "Book record not found", success: false });
+
+    }else if(!isWithinValidWindow(Book.borrowDate, Book.returnDate)){  
+      return res.status(403).json({message:"Penalty is pending...", success:false})
+    } else {
+
       student.books.splice(bookIndex, 1);
       book.availableCopies += 1;
       user.returnedBooks.push(bookId);
 
-      if(isWithinValidWindow(Book.borrowDate, Book.returnDate)){
-        user.honourScore += 1;
-      }
-
       await student.save();
       await book.save();
       await user.save();
-
-      return res.json({ message: "Book returned successfully", success: true });
-    } else {
-      return res.json({ message: "Book record not found", success: false });
+     return res.status(200).json({ message: "Book returned successfully", success: true });
     }
   } catch (error) {
     console.log(error);
-    return res.json({ message: "Something went wrong", success: false });
+    return res.status(500).json({ message: "Something went wrong", success: false });
   }
 };
 
@@ -207,11 +197,15 @@ export const getAllottedBooksById = async (req, res) => {
 
     let booksInfo = await AllottedBooks.find({ URN });
 
+    if (!booksInfo || booksInfo.length === 0) {
+      return res.status(204).json({ message: "No books allotted to this user", success: false });
+    }
+
     // First fetched the id of each borrowed book and then according to each book id fetched the book details.
     // Now this book details merged with allotted book data response
 
     if(!booksInfo[0].books){
-      res.json({message:"Books not allotted yet."})
+    return res.status(204).json({message:"Books not allotted yet."})
     }
 
 
@@ -236,15 +230,103 @@ export const getAllottedBooksById = async (req, res) => {
 
     // console.log(userBooks)
 
-    res.json({
+    res.status(200).json({
       message: "Details fetched successfully",
       bookDetailsResponse,
       success: true,
     });
   } catch (error) {
     console.log(error);
-    res.json({ message: "Something went Wrong!!" });
+    res.status(500).json({ message: "Something went Wrong!!" });
   }
 };
 
+let penaltyperDay = 1;
+
+export const getPenaltyBooksByid = async(req, res)=>{
+  const id = req.user;
+
+  try {
+    const student = await User.findById(id).select('URN')
+
+    const URN = student.URN
+    
+    const today = new Date()
+
+    const allottedBooks = await AllottedBooks.findOne({URN})
+    // console.log(allottedBooks.books)
+    // console.log(student.URN)
+
+    if(!allottedBooks){
+      return res.status(204).json({message:"No books allotted to this user", success  :false})
+    }
+
+    const books = allottedBooks.books.filter((Book)=>{
+      const [day, month, year] = Book.returnDate.split("-");
+      const returnDate= new Date(`${year}-${month}-${day}`); 
+
+      return today > returnDate})
+
+    const bookIds = books.flatMap((Book)=>Book.bookId)
+
+    const booksData = await Books.find({ _id: { $in: bookIds } })
+      .select("title")
+      .lean();
+
+     const bookMap = {};
+    booksData.forEach((book) => {
+      bookMap[book._id.toString()] = book;
+    });  
+      
+    const Data=books.map((book)=>{
+      const plainBook = book.toObject();
+      const [day, month, year] = book.returnDate.split("-");
+      const returnDate= new Date(`${year}-${month}-${day}`);
+      const milliSeconds = today - returnDate;
+      const Days = Math.floor(milliSeconds / (1000 * 60 * 60 * 24));
+     return{
+      ...plainBook,
+      daysOverDue: Days,
+      bookData:bookMap[book.bookId.toString()]
+    }
+    }) 
+
+    res.status(201).json({message:"Data Fetched Successfully", penaltyperDay, Data})
+      // console.log(bookIds)
+
+  } catch (error) {
+    console.log(error)
+  }
+
+}
+
+export const changePenalty = (req,res) =>{
+  const {penalty} = req.body;
+  penaltyperDay = penalty;
+  // console.log(penaltyperDay)
+  // console.log(new Date())
+
+  res.status(201).json({message:`Penalty changed successfully to ${penaltyperDay}`, success:true})
+}
+
+export const booksCompleted = async(req,res)=>{
+  const id = req.user;
+
+  try {
+    const studentUser = await User.findById(id);
+
+    const returnedBooks = [...new Set(studentUser.returnedBooks)];
+
+    // console.log(returnedBooks)
+
+    const returnBooksData = await Books.find({ _id: {$in : returnedBooks} })
+
+    // console.log(returnBooksData)
+
+    res.status(200).json({message:"Details fetched successfully", returnBooksData, success:true})   
+
+  } catch (error) {
+    res.status(500).json({message:"Internal Server Error", success: false})
+  }
+}
 

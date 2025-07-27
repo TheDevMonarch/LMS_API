@@ -1,4 +1,7 @@
 import { Books } from "../Models/Books.js";
+import { User } from "../Models/User.js";
+import cloudinary from '../Utils/cloudinary.js';
+import streamifier from 'streamifier';
 
 //Add Books
 export const addNewBooks = async (req, res) => {
@@ -13,11 +16,31 @@ export const addNewBooks = async (req, res) => {
     location === "" ||
     totalCopies === ""
   ) {
-    return res.json({ message: "All fields are required", success: false });
+    return res.status(400).json({ message: "All fields are required", success: false });
   }
 
   try {
     const book = await Books.findOne({ title, authorName, publication });
+
+    // Upload image to Cloudinary
+    let coverImageUrl = "";
+    if (req.file) {
+      const streamUpload = () => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "book_covers" },
+            (error, result) => {
+              if (result) resolve(result);
+              else reject(error);
+            }
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+      };
+
+      const result = await streamUpload();
+      coverImageUrl = result.secure_url;
+    }
 
     if (!book) {
       await Books.create({
@@ -28,14 +51,18 @@ export const addNewBooks = async (req, res) => {
         category,
         location,
         totalCopies,
-        availableCopies:totalCopies
+        availableCopies:totalCopies,
+        coverImage: coverImageUrl
       });
-      return res.json({ message: "Book added successfully" });
+
+      
+      return res.status(201).json({ message: "Book added successfully", success:true });
     } else {
-      return res.json({ message: "Book already exist" });
+      return res.status(409).json({ message: "Book already exist", success:false });
     }
   } catch (error) {
     console.log(error);
+    return res.status(500).json({ message: "Something went wrong", success: false });
   }
 };
 
@@ -84,8 +111,8 @@ if (category) {
 const books = await Books.find(query);
 
 
-    if (!books) {
-      return res.json({ message: "Books not found", success: false });
+    if (!books || books.length === 0) {
+      return res.status(404).json({ message: "Books not found", success: false });
     }
 
     return res.json({
@@ -95,7 +122,6 @@ const books = await Books.find(query);
     });
   } catch (error) {
     console.log(error);
-    return res.json({ message: "Something went wrong!", success: false });
+    return res.status(201).json({ message: "Something went wrong!", success: false });
   }
 };
- 
