@@ -9,6 +9,8 @@ export const generateCookie = (user, res, statusCode=200, message) => {
     .status(statusCode)
     .cookie("LMS_Token", token, {
       httpOnly: true,
+      sameSite: "None", 
+      secure: true, 
       maxAge: 1000 * 60 * 60 * 24,
     })
     .json({ message: message, role:user.role, success: true });
