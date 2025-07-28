@@ -159,7 +159,7 @@ export const acceptRequest = async(req,res)=>{
     await requestData.save();
     await getAllottedBookData.save();
 
-    console.log(bookData.returnDate, bookRequest.NoOfDays)
+    // console.log(bookData.returnDate, bookRequest.NoOfDays)
 
     return res.status(200).json({message:"Request accepted successfully", success:true})
 

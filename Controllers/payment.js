@@ -97,7 +97,7 @@ export const Verify = async (req, res) => {
 
     if (generated_signature === razorpay_signature) {
    
-    console.log(" Payment verified successfully");
+    // console.log(" Payment verified successfully");
 
     let payment = await Payment.create({
     studentId,
