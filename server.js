@@ -42,6 +42,10 @@ app.use('/api/payment', paymentRouter);
 app.use('/students', addStudentRouter);
 app.use('/api/verifyToken', verifyToken);
 
+app.get('/', (req,res)=>{
+  res.send("Welcome to the LMS API");
+});
+
 
 mongoose.connect(process.env.MONGODB_URI, {
   dbName: "LibraryManagementSystem"
