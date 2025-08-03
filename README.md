@@ -38,17 +38,17 @@ This is the backend API for the **Library Management System** built with **Node.
 
 | Method | Endpoint                             | Description                      | Access      |
 |--------|--------------------------------------|----------------------------------|-------------|
-| POST   | `/api/register`                      | Register new user                | Public      |
-| POST   | `/api/login`                         | Login and set cookie             | Public      |
+| POST   | `/api/user/register`                 | Register new user                | Public      |
+| POST   | `/api/user/login`                    | Login and set cookie             | Public      |
 | GET    | `/api/verifyToken`                   | Verify token and get role        | Authenticated |
-| POST   | `/api/admin/addBook`                 | Add new book                     | Admin       |
-| GET    | `/api/admin/allBooks`                | Get all books                    | Admin       |
-| POST   | `/api/student/requestExtension`      | Request extension                | Student     |
-| GET    | `/api/student/extensionHistory`      | View extension request history   | Student     |
-| POST   | `/api/admin/handleExtension`         | Accept/reject extension          | Admin       |
-| POST   | `/api/admin/allotBook`               | Allot book to student            | Admin       |
-| GET    | `/api/student/allottedBooks`         | View allotted books              | Student     |
-| GET    | `/api/student/penalty`               | View penalties                   | Student     |
+| POST   | `api/books/addNewBook`               | Add new book                     | Admin       |
+| GET    | `api/books/getBooks`                 | Get all books                    | public      |
+| POST   | `api/extensionRequests/addNewRequest`      | Request extension                | Student     |
+| GET    | `api/extensionRequests/getRequestsData`      | View extension request history   | Student     |
+| POST   | `api/extensionRequests/acceptRequest`         | Accept extension          | Admin       |
+| POST   | `/api/allottedBooks/allotBooks`               | Allot book to student            | Admin       |
+| GET    | `/api/allottedBooks/getAllottedBooksById`         | View allotted books              | Student     |
+| GET    | `api/allottedBooks/getPenaltyBooksById`               | View penalties                   | Student     |
 
 _(More APIs included in source)_
 
