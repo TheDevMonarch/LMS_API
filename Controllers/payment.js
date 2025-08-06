@@ -27,7 +27,7 @@ const extendDueDates = async (bookIds, studentURN) => {
         let dateObj = new Date(`${year}-${month}-${day}`);
 
         
-        dateObj.setDate(dateObj.getDate() + 5);
+        dateObj.setDate(dateObj.getDate() + Number(matchedBook.DaysOverDue));
 
         // Format back to "DD-MM-YYYY"
         const extendedDate = `${String(dateObj.getDate()).padStart(2, "0")}-${String(dateObj.getMonth() + 1).padStart(2, "0")}-${dateObj.getFullYear()}`;
